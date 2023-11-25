@@ -1,4 +1,4 @@
-# Mezzmo TV Show Trailer Channel
+# Mezzmo TV Show Trailers Channel
 Add a channel to your Mezzmo server to view movie trailers from <a href="https://www.themoviedb.org/">TMDB</a>.  
 
 
@@ -22,7 +22,7 @@ Add a channel to your Mezzmo server to view movie trailers from <a href="https:/
 
 ## Installation and usage:
 
--  Download the Mezzmo TV Show Trailer Channel release zipfile
+-  Download the Mezzmo TV Show Trailers Channel release zipfile
 -  Ensure you have Python installed on Windows. Minimum version 3.x
 -  Unzip file into an empty folder on your system
 -  The zipfile contains 2 folders, client and server
