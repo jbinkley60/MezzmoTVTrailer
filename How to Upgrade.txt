@@ -1,0 +1,8 @@
+Upgrading from v1.0.0 to v1.0.1
+
+v1.0.1 only has client changes.  Simply copy tvshow_trailers.py file over the 
+exsiting v1.0.0 file on your client computer.  
+
+
+
+At this point everything should be working normally

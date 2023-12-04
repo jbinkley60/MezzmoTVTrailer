@@ -13,7 +13,7 @@ from urllib.request import Request, urlopen
 
 trailerdb = ''
 tr_config = {}
-totcount = dupcount = notrailer = nocountry = 0
+totcount = dupcount = notrailer = nocountry = badtrailer = 0
 
 # TV Show trailer feed URLs
 
@@ -25,7 +25,7 @@ TVTRAILERS_URL_BASE      = ''
 TVTRAILERS_POSTER_SIZE   = 'w500'
 TVTRAILERS_BACKDROP_SIZE = 'original'
 
-version = 'version 1.0.0'
+version = 'version 1.0.1'
 
 sysarg1 = sysarg2 = sysarg3 = sysarg4 = ''
 
@@ -172,7 +172,7 @@ def displayHelp(sysarg1):                                 #  Command line help m
 def getMezzmoTrailers(sysarg1= '', sysarg2= '', sysarg3 = ''):    #  Get Movie Channel Trailers  
     
     global tr_config
-    global dupcount, totcount, notrailer, nocountry
+    global dupcount, totcount, notrailer, nocountry, badtrailer
 
     tcountry = tr_config['country'].upper()
     #print(tcountry)
@@ -218,45 +218,47 @@ def getMezzmoTrailers(sysarg1= '', sysarg2= '', sysarg3 = ''):    #  Get Movie C
                 jresponse.close()
                 
                 if json_obj.get('results'):
-                    mgenlog = 'Number of TVShows ' + type + ' found: ' + str(len(json_obj['results'])) + ' Page: ' + str(page)
+                    mgenlog = 'Number of TVShows ' + type + ' found: ' + str(len(json_obj['results'])) + \
+                    ' Page: ' + str(page)
                     genLog(mgenlog)
                     print(mgenlog)
-                    found = 0
+
                     for trailer in json_obj['results']:
-                        try:
+                        cdupe = checkDupe(trailer['id'], trailer['name'], type)  # Check if TV Show already in database
+                        #print('Countries are: ' + str(trailer['origin_country']))
+                        cmatch = checkCountry(trailer['origin_country'], trailer['id'], trailer['name'])
+                        #print('Cmatch value ' + str(cmatch) + ' ' + str(cdupe))
+                        item = None
+                        if cdupe == 0 and cmatch == 0:
+                            print('Trying for trailer: ' + trailer['name'] + '  ' + str(trailer['id']))
                             item = getTrailerDetails(trailer['id'], trailer['name'])
-                        except:
-                            item = None
-                        if item != None:
-                            found = checkTrailer(item, type)             # Check if movie already in database
-                            country = item['country']                       
-                            if found == 0 and tcountry in country:
-                                trresults = getTrailer(item['uri'])      # Fetch trailer
+                        elif cmatch == 0:
+                            dupcount += 1
+                        elif cmatch == 1:
+                            nocountry += 1                                  
+                        if item != None :                                # Check nondupe trailer and good country
+                            checkTrailer(item, type)                     # Update trailer information
+                            trbad = checkBad(item)                       # Check if trailer already marked bad              
+                            if trbad == 0:
+                                trresults = getTrailer(item['uri'])      # Fetch trailer 
                                 if trresults[0] == 0:                    # New trailer fetched
                                     trname = checkFormats(trresults[1])  # Check if encoding needs changed
-                                    if trname != 0:                      # Trailer file reencoded                              
+                                    if trname != 0:                      # Trailer file reencoded                           
                                         moveTrailers(trname)             # Move trailer to trailer folder
                                         updateTempHist(item['tmdb_id'], trname, trresults[2], trresults[3])
                                         getArtwork(item['tmdb_id'], item['poster_uri'], item['backdrop_uri'])
-                                #print(str(trresults))
+                                else:
+                                    badtrailer += 1
+                                    addbadTrailer(item, type)            # Add to bad trailer table
                                 totcount += 1
                                 ccount += 1
-                            elif found == 1:
-                                dupcount += 1
-                            elif tcountry not in country:
-                                try:                                     # Handle unprintable  characts
-                                    mgenlog = 'Origin country is not: ' + tcountry + ' Skipping TV Show: ' + item['title']
-                                    print(mgenlog)
-                                    genLog(mgenlog)
-                                except:
-                                    mgenlog = 'Origin country is not: ' + tcountry + ' Skipping TV Show TMDB ID - ' +    \
-                                    str(item['tmdb_id'])
-                                    print(mgenlog)
-                                    genLog(mgenlog)
-                                nocountry += 1
+                            elif trbad > 0:                              # Trailer already marked unavailable
+                                badtrailer += 1
+                                mgenlog = 'Skipping trailer previously marked unavailable: ' + item['uri']
+                                print(mgenlog)
+                                genLog(mgenlog)                   
                         else:
                             notrailer += 1
-
     except Exception as e:
         print (e)
         mgenlog = 'There was an error getting TVShow Trailers Channel listing for: ' + type
@@ -310,11 +312,16 @@ def getTrailerDetails(id, trname):
         
         # make sure it has a trailer video
         vidlength = len(json_obj.get('videos')['results'])
-        #print('Number of videos found ' + str(vidlength))
+        print('Number of videos found ' + str(vidlength))
         if vidlength == 0:
-            mgenlog = 'No trailers found for TV Show. Skipping TV Show: ' + trname
-            print(mgenlog)
-            genLog(mgenlog)  
+            try:
+                mgenlog = 'No trailers found for TV Show. Skipping TV Show: ' + trname
+                print(mgenlog)
+                genLog(mgenlog) 
+            except:
+                mgenlog = 'No trailers found for TV Show. Skipping TV Show: TMDB ID ' + str(item['tmdb_id'])
+                print(mgenlog)
+                genLog(mgenlog)  
             return None
         if json_obj.get('videos'):
             videos = json_obj['videos']
@@ -328,6 +335,7 @@ def getTrailerDetails(id, trname):
                         try:
                             item['title'] = json_obj['name']
                             item['uri'] = TVTRAILERS_URL_YOUTUBE.format(video['key'])
+                            print(item['uri'])
                             if json_obj.get('overview'):
                                 item['description'] = json_obj['overview']
                             if json_obj.get('tagline'):
@@ -395,63 +403,105 @@ def getTrailerDetails(id, trname):
                                 item['composer_director_creator'] = item['composer_director_creator'].rstrip('##')
                             return item
                         except:
+                            mgenlog = 'There was a problem parsing TV Show Trailers Details for: ' + str(id)
+                            print(mgenlog)
+                            genLog(mgenlog)                             
                             return None
+                if len(item['uri']) == 0:
+                    #print('Length of item URI is: ' + str(len(item['uri'])))
+                    mgenlog = 'No TV Show trailer videos found for TMDB_ID: ' + str(id)
+                    print(mgenlog)
+                    genLog(mgenlog)
         return None
 
     except Exception as e:
         print (e)
-        mgenlog = 'There was an error getting TV SHow Trailers Details for: ' + str(id)
+        mgenlog = 'There was an error getting TV Show Trailers Details for: ' + str(id)
         print(mgenlog)
         genLog(mgenlog)  
+                
 
+def checkDupe(tmdb_id, tname, mtype):                      # Check if trailer / movie already in database
 
-def checkTrailer(item, mtype):                             # Check if trailer / movie already in database
-
-    try:
         db = openTrailerDB()
-        found = -1
+        found = 0
         
-        mtitle = item['title']
+        #mtitle = item['title']
 
-        trcurr = db.execute('SELECT trTitle from tvTrailers WHERE tmdb_id = ?', (item['tmdb_id'],)) 
+        trcurr = db.execute('SELECT trTitle from tvTrailers WHERE tmdb_id = ?', (tmdb_id,)) 
         trtuple = trcurr.fetchone()
         del trcurr
 
         if trtuple:
-            mgenlog = 'TVShow already in database, skipping: ' + mtitle
-            genLog(mgenlog)
-            print(mgenlog)
-            found = 1
-        else:
-            try:                                            # Handle unprintable characters
-                mgenlog = 'New TVShow found: ' + mtitle
+            try:
+                mgenlog = 'TV Show already in database, skipping: ' + trtuple[0]
                 genLog(mgenlog)
                 print(mgenlog)
             except:
-                mgenlog = 'New TVShow found - ' + 'TMDB ID - ' + str(item['tmdb_id'])
+                mgenlog = 'TV Show already in database, skipping: TMDB ID - ' + str(tmdb_id)
+                genLog(mgenlog)
+                print(mgenlog)
+            found = 1
+        else:
+            try:                                            # Handle unprintable characters
+                mgenlog = 'New TV Show found: ' + tname
+                genLog(mgenlog)
+                print(mgenlog)
+            except:
+                mgenlog = 'New TV Show found - ' + 'TMDB ID - ' + str(tmdb_id)
                 genLog(mgenlog)
                 print(mgenlog)
 
-            currTime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            db.execute('INSERT into tvTemp (dateAdded, tmdb_id, trailerUri, trType, trTitle, trOverview,            \
-            trTagline, trRelease_date, trImdb_id, trWebsite, trPoster_path, trBackdrop_path, trUser_rating,         \
-            trGenres, trProd_company, trContent_rating, trArtist_actor, trComposer, trLang, trCountry, var1 )       \
-            values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', (currTime, item['tmdb_id'],    \
-            item['uri'], mtype, item['title'],  item['description'], item['tagline'], item['release_date'],         \
-            item['imdb_id'], item['website'], item['poster_uri'], item['backdrop_uri'], item['user_rating'],        \
-            str(item['genre']), str(item['production_company']), item['content_rating'], str(item['artist_actor']), \
-            str(item['composer_director_creator']), item['language'], item['country'], item['album_series'], ))
-            db.commit()    
-            found = 0
         db.close()
         return found
+
+
+def checkCountry(countries, tmdb_id, tname):               #  Check for matched countries
+
+        global tr_config
+        tcountry = tr_config['country'].upper()
+
+        cmatch = 0      
+        for country in countries:
+            if country.upper() != tcountry:
+                cmatch = 1      
+                try:                                       #  Handle unprintable  characts
+                    mgenlog = 'Origin country is not: ' + tcountry + ' Skipping TV Show: ' + tname
+                    print(mgenlog)
+                    genLog(mgenlog)
+                    break
+                except:
+                    mgenlog = 'Origin country is not: ' + tcountry + ' Skipping TV Show TMDB ID - ' +    \
+                    str(tmdb_id)
+                    print(mgenlog)
+                    genLog(mgenlog)
+                    break
+
+        return cmatch
+
+
+def checkTrailer(item, mtype):                              # Update detailed trailer information already in database
+
+    try:
+        db = openTrailerDB()
+
+        currTime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        db.execute('INSERT OR IGNORE into tvTemp (dateAdded, tmdb_id, trailerUri, trType, trTitle, trOverview,  \
+        trTagline, trRelease_date, trImdb_id, trWebsite, trPoster_path, trBackdrop_path, trUser_rating,         \
+        trGenres, trProd_company, trContent_rating, trArtist_actor, trComposer, trLang, trCountry, var1 )       \
+        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', (currTime, item['tmdb_id'],    \
+        item['uri'], mtype, item['title'],  item['description'], item['tagline'], item['release_date'],         \
+        item['imdb_id'], item['website'], item['poster_uri'], item['backdrop_uri'], item['user_rating'],        \
+        str(item['genre']), str(item['production_company']), item['content_rating'], str(item['artist_actor']), \
+        str(item['composer_director_creator']), item['language'], item['country'], item['album_series'], ))
+        db.commit()    
 
     except Exception as e:
         print (e)
         mgenlog = 'There was an error checking trailer details for: TMDB ID - ' + str(item['tmdb_id'])
         print(mgenlog)
         genLog(mgenlog)
-        return found 
+        #return found 
 
 
 def genLog(mgenlog):                                        #  Write to logfile
@@ -511,6 +561,13 @@ def checkDatabase():
         db.execute('CREATE INDEX IF NOT EXISTS tetrailer_5 ON tvTemp (tmdb_id)')
         db.execute('DELETE FROM tvTemp')                                    # Clear temp table on startup
 
+        db.execute('CREATE table IF NOT EXISTS badTrailers (dateAdded TEXT, tmdb_id INTEGER,    \
+        trailerUri TEXT, trType TEXT, trTitle TEXT, var1 TEXT, var2 TEXT, var3 TEXT, var4 TEXT)')
+        db.execute('CREATE INDEX IF NOT EXISTS badtrailer_1 ON badTrailers (dateAdded)')
+        db.execute('CREATE INDEX IF NOT EXISTS badtrailer_2 ON badTrailers (trailerUri)')
+        db.execute('CREATE INDEX IF NOT EXISTS badtrailer_3 ON badTrailers (trType)')
+        db.execute('CREATE UNIQUE INDEX IF NOT EXISTS badtrailer_4 ON badTrailers (tmdb_id)')
+
         db.commit()
         db.close()
  
@@ -548,6 +605,34 @@ def updateTempHist(tmdb_id, trname, trsize, trres):                       # Upda
         mgenlog = "There was a problem updating the temp table: " + trailerdb
         print(mgenlog)
         genLog(mgenlog)
+
+
+def addbadTrailer(item, mtype):                     # Mark trailers bad for 7 days
+
+        db = openTrailerDB()
+
+        currTime = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        db.execute('INSERT OR IGNORE into badTrailers (dateAdded, tmdb_id, trailerUri, trType, trTitle) \
+        values (?, ?, ?, ?, ?)', (currTime, item['tmdb_id'], item['uri'], mtype, item['title'],))
+        db.commit()
+        db.close()         
+
+def checkBad(item):                                 # Check if trailer already marked unavailable
+
+    try:
+        db = openTrailerDB()
+        bdcurr = db.execute('SELECT count (*) from badTrailers WHERE trailerUri = ?', (item['uri'],))        
+        bdtuple = bdcurr.fetchone()
+        del bdcurr
+        db.close()
+        return bdtuple[0]
+
+    except Exception as e:
+        print (e)
+        mgenlog = "There was problem a checking for unavailable trailers: " + item['uri']
+        print(mgenlog)
+        genLog(mgenlog)
+        return 0
 
 
 def getPages():                                     # Return page list based upon config setting
@@ -877,12 +962,12 @@ def checkLimits():                                     # Check category limits
             (type, mcount, type,))
 
             dbtuple = dbcurr.fetchall()                   # TVShows over keep limit
-
+            del dbcurr
             if len(dbtuple) > 0:                          # Remove extra TVShows and trailer files
-                mcount = 0
+                rmcount = 0
                 for tv in range(len(dbtuple)):
                     delcommand = "del " + '"' + dbtuple[tv][2] + '"'       
-                    #print(delcommand)
+                    print(delcommand)
                     os.system(delcommand)                 # Remove trailer from disk
                     if dbtuple[tv][4]:                # Delete poster file
                         command = "del " + dbtuple[tv][4] + " >nul 2>nul"
@@ -893,11 +978,28 @@ def checkLimits():                                     # Check category limits
                     db.execute('DELETE FROM tvTrailers WHERE tmdb_id=?', (dbtuple[tv][1],))
                     mgenlog = type + ' TV Show removed: ' + dbtuple[tv][3]
                     genLog(mgenlog)
-                    mcount += 1
+                    rmcount += 1
                 db.commit()
-                mgenlog = type + ' TVShow Trailers removed: ' + str(mcount)
+                mgenlog = type + ' TVShow Trailers removed: ' + str(rmcount)
                 genLog(mgenlog)
                 print(mgenlog)
+            del dbtuple
+        newtime = (datetime.now() + timedelta(days=-3)).strftime('%Y-%m-%d %H:%M:%S')
+        bdcurr = db.execute('SELECT trailerUri FROM badTrailers WHERE dateAdded < ?', (newtime,))
+        bdtuples = bdcurr.fetchall()
+
+        bdcount = 0
+        for bad in range(len(bdtuples)):                # Remove aged trailers for recheck after 3 days
+            db.execute('DELETE FROM badTrailers WHERE trailerUri=?', (bdtuples[bad][0],))
+            mgenlog = 'Trailer reset from unavailable for recheck: ' + str(bdtuples[bad][0],)
+            genLog(mgenlog)
+            bdcount += 1
+        db.commit()
+        
+        if bdcount > 0:
+            mgenlog = 'Trailers reset from unavailable for rechecking: ' + str(bdcount)
+            genLog(mgenlog)
+            print(mgenlog) 
 
         db.close()
         mgenlog = 'Checking TV Show keep limits completed. '  
@@ -1265,7 +1367,7 @@ def displayStats(sysarg1):                            # Display statistics
         if sysarg1.lower() not in ['trailers', 'stats']:
             return
   
-        global totcount, dupcount, notrailer, nocountry
+        global totcount, dupcount, notrailer, nocountry, badtrailer
         global tr_config
         trailerloc = tr_config['ltrailerloc'] + '\\trailers'
         mtrailerloc = tr_config['mtrailerloc']
@@ -1275,10 +1377,11 @@ def displayStats(sysarg1):                            # Display statistics
         daytotal, grandtotal =  getTotals()
 
         if sysarg1.lower() in ['trailers']:
-            print ("Mezzmo TVShow Trailers checked: \t\t" + str(totcount + dupcount))
-            print ("Mezzmo TVShow Trailers skipped: \t\t" + str(dupcount))
+            print ("Mezzmo TVShow Trailers checked: \t\t" + str(totcount + badtrailer + notrailer))
+            print ("Mezzmo TVShow Trailers existing skipped: \t" + str(dupcount))
+            print ("Mezzmo TVShow Trailers unavailable: \t\t" + str(badtrailer))
             print ("Mezzmo TVShow Trailers fetched: \t\t" + str(totcount))
-            print ("Mezzmo TVShows with no trailers: \t\t" + str(notrailer))
+            print ("Mezzmo TVShows with no trailers: \t\t" + str(notrailer - dupcount - nocountry))
             print ("Mezzmo TVShows country mismatch: \t\t" + str(nocountry))
 
         if sysarg1.lower() in ['trailers', 'stats']:
