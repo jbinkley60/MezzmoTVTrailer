@@ -1,3 +1,11 @@
+v1.0.2  12/18/2023
+
+- Added feature to trim database history table to 1000 lines and the
+  logfile to 15000 lines automatically getting to 100% completely
+  maintenance free running when running as a scheduled task. 
+- Modified the total fetch counter to be for the last 30 days to 
+  align to the automatic pruning of the history table.
+
 v1.0.1  12/4/2023
 
 - Improved speed and significant reduction in TMDB API calls by

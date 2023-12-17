@@ -25,7 +25,7 @@ TVTRAILERS_URL_BASE      = ''
 TVTRAILERS_POSTER_SIZE   = 'w500'
 TVTRAILERS_BACKDROP_SIZE = 'original'
 
-version = 'version 1.0.1'
+version = 'version 1.0.2'
 
 sysarg1 = sysarg2 = sysarg3 = sysarg4 = ''
 
@@ -567,6 +567,16 @@ def checkDatabase():
         db.execute('CREATE INDEX IF NOT EXISTS badtrailer_2 ON badTrailers (trailerUri)')
         db.execute('CREATE INDEX IF NOT EXISTS badtrailer_3 ON badTrailers (trType)')
         db.execute('CREATE UNIQUE INDEX IF NOT EXISTS badtrailer_4 ON badTrailers (tmdb_id)')
+        db.commit()
+
+        hscurr = db.execute('SELECT dateAdded, tmdb_id FROM tvHistory ORDER BY DateAdded ASC')
+        hstuples = hscurr.fetchall()
+        hstcount = len(hstuples)        
+        #print(hstcount)
+        if hstcount > 0 and hstcount > 1000:                                # Trim history table to 1000 rows
+            for row in range(len(hstuples) - 1000):
+                db.execute('DELETE from tvHistory WHERE dateAdded = ? AND tmdb_id = ?',     \
+                (hstuples[row][0], hstuples[row][1],)) 
 
         db.commit()
         db.close()
@@ -934,9 +944,12 @@ def checkFolders():                                # Check folders and files
         print(mgenlog)    
 
 
-def checkLimits():                                     # Check category limits
+def checkLimits(sysarg1):                             # Check category limits
 
     try:
+
+        #if sysarg1.lower() NOT IN ['trailer']:
+        #    return
 
         global tr_config
         trailerloc = tr_config['ltrailerloc']         # Get locatal path to trailer lcoation
@@ -999,7 +1012,7 @@ def checkLimits():                                     # Check category limits
         if bdcount > 0:
             mgenlog = 'Trailers reset from unavailable for rechecking: ' + str(bdcount)
             genLog(mgenlog)
-            print(mgenlog) 
+            print(mgenlog)
 
         db.close()
         mgenlog = 'Checking TV Show keep limits completed. '  
@@ -1049,7 +1062,7 @@ def renameFiles(imdbtitle = ''):                    # Rename trailer file names 
 def moveTrailers(trfile):                           # Move trailers to trailer location
 
     try:
-        global tr_config                            # Get locaal path to trailer lcoation
+        global tr_config                            # Get local path to trailer lcoation
         trailerloc = tr_config['ltrailerloc'] + '\\trailers'
 
         command = "move temp\\" + trfile + " " + trailerloc + " >nul 2>nul"
@@ -1135,7 +1148,8 @@ def getTotals():                                             # Gets checked down
         dateMatch = currDate + '%'
         dqcurr = db.execute('SELECT count (*) from tvHistory WHERE dateAdded LIKE ?', (dateMatch,))
         daytuple = dqcurr.fetchone()
-        dqcurr = db.execute('SELECT count (*) from tvHistory')
+        newtime = (datetime.now() + timedelta(days=-30)).strftime('%Y-%m-%d %H:%M:%S')
+        dqcurr = db.execute('SELECT count (*) from tvHistory WHERE dateAdded > ?', (newtime,))
         htottuple = dqcurr.fetchone()
         db.close()
         return [daytuple[0], htottuple[0]]
@@ -1262,8 +1276,23 @@ def cleanTrailers(sysarg1 = '', sysarg2 = '', sysarg3 = ''): # Clean show TVShow
                     print('\n' + mgenlog)  
 
 
-def checkFiles():                                     # Check for orphaned trailer or missing files
+def checkLogfile():                                   # Checks / trims the size of the logfile
 
+        global tr_config
+        logoutfile = tr_config['logoutfile']
+        fileh = open(logoutfile, "r+")                #  open log file
+        flines = fileh.readlines()
+        fcount = len(flines)
+        if fcount > 16000:
+            fileh.seek(0)
+            fileh.truncate()
+            fileh.writelines(flines[fcount - 15000:])
+        fileh.close()
+        mgenlog = 'The number of lines in the logfile is: ' + str(len(flines))
+        genLog(mgenlog)  
+
+
+def checkFiles():                                     # Check for orphaned trailer or missing files
 
         global tr_config
         trailerloc = tr_config['ltrailerloc'] + '\\trailers' 
@@ -1386,7 +1415,7 @@ def displayStats(sysarg1):                            # Display statistics
 
         if sysarg1.lower() in ['trailers', 'stats']:
             print ("\nMezzmo TVShow Trailers fetched today: \t\t" + str(daytotal))
-            print ("Mezzmo TVShow Trailers fetched total: \t\t" + str(grandtotal))
+            print ("Mezzmo TVShow Trailers fetched last 30 days: \t" + str(grandtotal))
 
         if sysarg1.lower() in ['stats']:
             db = openTrailerDB()
@@ -1435,7 +1464,8 @@ checkCommands(sysarg1, sysarg2)                              # Check for valid c
 getConfig()                                                  # Process config file
 checkFolders()                                               # Check trailer and temp folder locations
 checkDatabase()                                              # Check trailer database
-checkLimits()                                                # Check limits of trailers to keep 
+checkLogfile()                                               # Checks the size of the logfile
+checkLimits(sysarg1)                                         # Check limits of trailers to keep 
 getMezzmoTrailers(sysarg1, sysarg2, sysarg3)                 # Get TVShow Channel Trailers
 checkCsv(sysarg1, sysarg2)
 cleanTrailers(sysarg1, sysarg2, sysarg3)
