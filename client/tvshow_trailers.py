@@ -217,10 +217,7 @@ def getMezzmoTrailers(sysarg1= '', sysarg2= '', sysarg3 = ''):    #  Get Movie C
             ccount = 0                                        # Category match counter
             for page in pages:
                 #print('Page number and counters are: ' + page + '  ' + str(ccount))
-                if ccount >= int(tr_config['mfetch']):        # Stop when max fetch reached
-                    mgenlog = 'TVShow category trailer limit reached: ' + type
-                    genLog(mgenlog)
-                    print(mgenlog)  
+                if ccount >= int(tr_config['mfetch']):        # Stop page checking when max fetch reached
                     break
                 
                 jresponse = urllib.request.urlopen(TVTRAILERS_URL_LIST.format(type, 'page=' + str(page)))
@@ -235,6 +232,12 @@ def getMezzmoTrailers(sysarg1= '', sysarg2= '', sysarg3 = ''):    #  Get Movie C
                     print(mgenlog)
 
                     for trailer in json_obj['results']:
+                        if ccount >= int(tr_config['mfetch']):        # Stop when max fetch reached
+                            mgenlog = 'TVShow category trailer limit reached: ' + type
+                            genLog(mgenlog)
+                            print(mgenlog)  
+                            break
+
                         cdupe = checkDupe(trailer['id'], trailer['name'], type)  # Check if TV Show already in database
                         #print('Countries are: ' + str(trailer['origin_country']))
                         cmatch = checkCountry(trailer['origin_country'], trailer['id'], trailer['name'])
