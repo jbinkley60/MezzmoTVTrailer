@@ -45,7 +45,9 @@ Add a channel to your Mezzmo server to view movie trailers from <a href="https:/
 - <b>trailers air</b>   -  Checks for Upcoming TV Shows airing today <br>
 - <b>trailers pop</b>   -  Checks for Popular TV Shows <br>
 - <b>trailers top</b>   -  Checks for Top Rated Shows <br>
-- <b>trailers all</b>   -  Checks for all for movie categories <br> 
+- <b>trailers all</b>   -  Checks for all for TV Show categories <br>
+- <b>clean category</b> -  Clears trailer database info for TV Shows by category and deletes downloaded trailer file <br>
+- <b>clean files</b>    -  Analyzes trailer files and database entries for missing files and entries <br>  
 - <b>csv trailers</b>   -  Creates a CSV file with the trailer information in the Mezzmo TV Show Trailers Channel<br> 
 - <b>csv history</b>    -  Creates a CSV file with the history information in the Mezzmo TV Show Trailers Channel<br>
 - <b>stats</b>          -  Creates a time stamped file name backup of the Mezzmo TV Shows Trailers Channel database <br>
