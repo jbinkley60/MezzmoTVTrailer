@@ -25,7 +25,7 @@ TVTRAILERS_URL_BASE      = ''
 TVTRAILERS_POSTER_SIZE   = 'w500'
 TVTRAILERS_BACKDROP_SIZE = 'original'
 
-version = 'version 1.0.3'
+version = 'version 1.0.4'
 
 sysarg1 = sysarg2 = sysarg3 = sysarg4 = ''
 
@@ -103,6 +103,15 @@ def getConfig():
         if country not in ['us', 'fr', 'cn', 'de', 'jp'] :
             country = 'us'                                             # Default to US
 
+        data = fileh.readline()                                        # Get maximum number of trailers to fecth per run
+        if data != '':
+            datar = data.split('#')                                    # Remove comments
+            mfetch = datar[0].strip().rstrip("\n")                     # cleanup unwanted characters
+        else:
+            mfetch = '20'                                              # 20 trailers per fetch is the default
+        if int(mfetch) > 40:
+            mfetch = 40                                                # Max trailers per fetch is 40
+
         fileh.close()                                                  # close the file
         
         tr_config = {
@@ -113,7 +122,8 @@ def getConfig():
                      'maxres': maxres,
                      'logoutfile': logoutfile,
                      'tformat': tformat,
-                     'country': country
+                     'country': country,
+                     'mfetch': mfetch,
                     }
 
         if not tformat in ['mkv', 'mp4']:
@@ -122,7 +132,7 @@ def getConfig():
             genLog(mgenlog)
             print(mgenlog) 
 
-        configuration = [ltrailerloc, mtrailerloc, tkeepcount, maxres, logoutfile, tformat, country]
+        configuration = [ltrailerloc, mtrailerloc, tkeepcount, maxres, logoutfile, tformat, country, mfetch]
         mgenlog = ("Mezzmo TvShow Trailers Channel Checker Client - " + version)
         print(mgenlog)
         genLog(mgenlog)
@@ -136,6 +146,7 @@ def getConfig():
         mgenlog = 'There was a problem parsing the config file.'
         genLog(mgenlog)
         print(mgenlog)
+        exit()
 
 
 def checkCommands(sysarg1, sysarg2):                                   # Check for valid commands
@@ -159,7 +170,7 @@ def displayHelp(sysarg1):                                 #  Command line help m
         print('trailers top\t - Checks for Top Rated TV Shows ')
         print('trailers all\t - Checks for all for TV Show categories ')
         print('\nclean category\t - Clears trailer database info for TVShows by category and deletes downloaded trailer file')
-        print('\t\t   Valid types are: on, air, pop,top, all') 
+        print('\t\t   Valid types are: on, air, pop, top, all') 
         print('clean files\t - Analyzes trailer files and database entries for missing files and entries')
         print('\ncsv trailers\t - Creates a CSV file with the trailer information')
         print('csv history\t - Creates a CSV file with the history information')
@@ -206,7 +217,7 @@ def getMezzmoTrailers(sysarg1= '', sysarg2= '', sysarg3 = ''):    #  Get Movie C
             ccount = 0                                        # Category match counter
             for page in pages:
                 #print('Page number and counters are: ' + page + '  ' + str(ccount))
-                if ccount >= 20:
+                if ccount >= int(tr_config['mfetch']):        # Stop when max fetch reached
                     mgenlog = 'TVShow category trailer limit reached: ' + type
                     genLog(mgenlog)
                     print(mgenlog)  
@@ -672,7 +683,6 @@ def getPages():                                     # Return page list based upo
     return pages
   
 
-
 def checkFormats(trailfile):                                             # Check / modify output formats
 
     try:
@@ -1002,12 +1012,12 @@ def checkLimits(sysarg1):                             # Check category limits
                     delcommand = "del " + '"' + dbtuple[tv][2] + '"'       
                     print(delcommand)
                     os.system(delcommand)                 # Remove trailer from disk
-                    if dbtuple[tv][4]:                # Delete poster file
-                        command = "del " + dbtuple[tv][4] + " >nul 2>nul"
-                        os.system(command) 
+                    if dbtuple[tv][4]:                    # Delete poster file
+                        delcommand = "del " + dbtuple[tv][4] + " >nul 2>nul"
+                        os.system(delcommand) 
                     if dbtuple[tv][5]:                    # Delete backdrop file
-                        command = "del " + dbtuple[tv][5] + " >nul 2>nul"
-                        os.system(command)   
+                        delcommand = "del " + dbtuple[tv][5] + " >nul 2>nul"
+                        os.system(delcommand)   
                     db.execute('DELETE FROM tvTrailers WHERE tmdb_id=?', (dbtuple[tv][1],))
                     mgenlog = type + ' TV Show removed: ' + dbtuple[tv][3]
                     genLog(mgenlog)
@@ -1296,6 +1306,25 @@ def cleanTrailers(sysarg1 = '', sysarg2 = '', sysarg3 = ''): # Clean show TVShow
                     print('\n' + mgenlog)  
 
 
+def checkUpdate(sysarg1):                             # Check for yt-dlp.exe update
+
+    try:
+        if len(sysarg1) > 1 and sysarg1.lower() != 'trailers':
+            return        
+        command = "yt-dlp.exe -U >nul 2>nul"
+        #print(command)
+        os.system(command)
+        mgenlog = 'Checking for yt-dlp.exe update completed.'
+        genLog(mgenlog)
+        print(mgenlog)
+    except Exception as e:
+        print (e)
+        mgenlog = 'There was a problem checking for a yt-dlp.exe update.'
+        genLog(mgenlog)
+        print(mgenlog)
+        exit()  
+
+
 def checkLogfile():                                   # Checks / trims the size of the logfile
 
         global tr_config
@@ -1482,6 +1511,7 @@ def displayStats(sysarg1):                            # Display statistics
 checkVersion()                                               # Ensure Python version 3+
 checkCommands(sysarg1, sysarg2)                              # Check for valid commands
 getConfig()                                                  # Process config file
+checkUpdate(sysarg1)                                         # Check for new vesion of yt-dlp.exe
 checkFolders()                                               # Check trailer and temp folder locations
 checkDatabase()                                              # Check trailer database
 checkLogfile()                                               # Checks the size of the logfile

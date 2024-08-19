@@ -1,3 +1,12 @@
+Upgrading from v1.0.3 to v1.0.4
+
+v1.0.4 only has client changes.  Simply copy tvshow_trailers.py and yt-dlp.exe files
+over the exsiting v1.0.3 files on your client computer.  Going forward the yt-dlp.exe
+file will be checked for an update everytime the TVShow Trailers plugin client is run.
+
+Also verify that the config file has a value for the new option: 
+Max trailers to fetch per category for each run
+
 Upgrading from v1.0.2 to v1.0.3
 
 v1.0.3 only has client changes.  Simply copy tvshow_trailers.py and yt-dlp.exe files

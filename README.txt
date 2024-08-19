@@ -1,3 +1,10 @@
+v1.0.4
+
+- Updated yt-dlp.exe to eliminate warning messages
+- Added automatic yt-dlp.exe update checking/updating to the latest version
+- Added setting to limit the maximum number of new trailers per category to 
+  fetch per run
+
 v1.0.3  3/29/2024
 
 - Fixed API key issue causing 401 errors from TMDB

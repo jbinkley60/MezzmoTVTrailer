@@ -239,7 +239,7 @@ def mezzmo_get_plugins(language):
     plugin = MezzmoPluginContentProvider()
     plugin.id = "mezzmo.plugin.TVShowTrailers"
     plugin.title = "TV Show Trailers"
-    plugin.version = "1.0.3"
+    plugin.version = "1.0.4"
     plugin.author = "Conceiva Pty. Ltd., jbinkley60"
     plugin.web_link = "https://www.themoviedb.org/"
     plugin.description = 'View TV Show trailers for current and upcoming TV Show series releases.\n\nTrailer information provided by www.themoviedb.org.'
