@@ -1,3 +1,8 @@
+Upgrading from v1.0.4 to v1.0.5
+
+v1.0.5 only has client changes.  Simply copy tvshow_trailers.py file over the 
+exsiting v1.0.4 file on your client computer. 
+
 Upgrading from v1.0.3 to v1.0.4
 
 v1.0.4 only has client changes.  Simply copy tvshow_trailers.py and yt-dlp.exe files

@@ -25,7 +25,7 @@ TVTRAILERS_URL_BASE      = ''
 TVTRAILERS_POSTER_SIZE   = 'w500'
 TVTRAILERS_BACKDROP_SIZE = 'original'
 
-version = 'version 1.0.4'
+version = 'version 1.0.5'
 
 sysarg1 = sysarg2 = sysarg3 = sysarg4 = ''
 
@@ -999,7 +999,7 @@ def checkLimits(sysarg1):                             # Check category limits
         genLog(mgenlog)
         print('\n' + mgenlog)
 
-        mtype = ['now_playing', 'upcoming', 'popular', 'top_rated']
+        mtype = ['airing_today', 'on_the_air', 'popular', 'top_rated']       
 
         for type in mtype:
             dbcurr = db.execute('SELECT dateAdded, tmdb_id, localTrURL, trTitle, locPoster_path,   \
@@ -1012,18 +1012,26 @@ def checkLimits(sysarg1):                             # Check category limits
             if len(dbtuple) > 0:                          # Remove extra TVShows and trailer files
                 rmcount = 0
                 for tv in range(len(dbtuple)):
-                    delcommand = "del " + '"' + dbtuple[tv][2] + '"'       
+                    #delcommand = "del " + '"' + dbtuple[tv][2] + " >nul 2>nul"  
+                    delcommand = "del " + dbtuple[tv][2] + " >nul 2>nul"  
                     print(delcommand)
                     os.system(delcommand)                 # Remove trailer from disk
+
                     if dbtuple[tv][4]:                    # Delete poster file
                         delcommand = "del " + dbtuple[tv][4] + " >nul 2>nul"
-                        os.system(delcommand) 
+                        os.system(delcommand)
                     if dbtuple[tv][5]:                    # Delete backdrop file
                         delcommand = "del " + dbtuple[tv][5] + " >nul 2>nul"
                         os.system(delcommand)   
-                    db.execute('DELETE FROM tvTrailers WHERE tmdb_id=?', (dbtuple[tv][1],))
+                    db.execute('DELETE FROM tvTrailers WHERE tmdb_id=? and trtype=?', (dbtuple[tv][1], type,))
+                    #print('TMDB ID: ' + str(dbtuple[tv][1]) + '  ' + dbtuple[tv][3])
+   
                     mgenlog = type + ' TV Show removed: ' + dbtuple[tv][3]
-                    genLog(mgenlog)
+                    try:                                  # Handle characterset codepage issues
+                        genLog(mgenlog)
+                    except:
+                        mgenlog = type + ' TV Show removed - TMDB ID: ' + str(dbtuple[tv][1])
+                        genLog(mgenlog)
                     rmcount += 1
                 db.commit()
                 mgenlog = type + ' TVShow Trailers removed: ' + str(rmcount)
@@ -1055,11 +1063,12 @@ def checkLimits(sysarg1):                             # Check category limits
         return
 
     except Exception as e:
-        print (e)
+        #print (e)
         mgenlog = "There was a problem checking limits "
         print(mgenlog)
-        genLog(mgenlog) 
-
+        genLog(mgenlog)
+        pass 
+        
 
 def renameFiles(imdbtitle = ''):                    # Rename trailer file names / move to temp folder
 

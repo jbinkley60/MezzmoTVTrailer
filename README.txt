@@ -1,4 +1,14 @@
-v1.0.4
+v1.0.5 9/6/2024
+
+- Fixed a bug where the Airing Today and Currently Airing TV Show categories
+  were not honoring the configuration trailer keep limit setting.
+- Fixed a bug where an exception error would occur if a trailer file being
+  deleted, during the limit checking, didn't exist on disk and had a non-ASCII
+  charater in the file name which couldn't be encoded by the local computer
+  code page.  This would cause the number of trailers to exceed the config
+  file limit setting.
+
+v1.0.4  8/19/2024
 
 - Updated yt-dlp.exe to eliminate warning messages
 - Added automatic yt-dlp.exe update checking/updating to the latest version
