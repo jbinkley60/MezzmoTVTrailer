@@ -4,7 +4,7 @@ v1.0.5 9/6/2024
   were not honoring the configuration trailer keep limit setting.
 - Fixed a bug where an exception error would occur if a trailer file being
   deleted, during the limit checking, didn't exist on disk and had a non-ASCII
-  charater in the file name which couldn't be encoded by the local computer
+  character in the file name which couldn't be encoded by the local computer
   code page.  This would cause the number of trailers to exceed the config
   file limit setting.
 
