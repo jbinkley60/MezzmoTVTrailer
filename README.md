@@ -17,13 +17,14 @@ Add a channel to your Mezzmo server to view movie trailers from <a href="https:/
 - Full Mezzmo TV Show Trailer channel statistics
 - CSV export of trailer information and checker history 
 - Command line backups of Mezzmo TV Show Trailers Channel database
-- User ability to clear trailer information by TV Show category 
+- User ability to clear trailer information by TV Show category
+- Client software now available in both native Python and Windows x64 formats  
 <br/>
 
 ## Installation and usage:
 
 -  Download the Mezzmo TV Show Trailers Channel release zipfile
--  Ensure you have Python installed on Windows. Minimum version 3.x
+-  Ensure you have Python installed on Windows. Minimum version 3.x or use the Windows x64 exe version
 -  Unzip file into an empty folder on your system
 -  The zipfile contains 2 folders, client and server
 -  The client folder stays on your local workstation and contains the trailer downloader

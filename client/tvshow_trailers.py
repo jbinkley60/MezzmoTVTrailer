@@ -25,7 +25,7 @@ TVTRAILERS_URL_BASE      = ''
 TVTRAILERS_POSTER_SIZE   = 'w500'
 TVTRAILERS_BACKDROP_SIZE = 'original'
 
-version = 'version 1.0.5'
+version = 'version 1.0.6'
 
 sysarg1 = sysarg2 = sysarg3 = sysarg4 = ''
 
@@ -53,7 +53,7 @@ def checkVersion():
         print('\nThe Mezzmo TvShow Trailers Channel requires Python version 3 or higher')
         print('Python version: ' + str(sys.version_info[0]) + '.' + str(sys.version_info[1])   \
         + '.' + str(sys.version_info[2]) + ' found.')
-        exit()  
+        sys.exit()  
 
 
 def getConfig():
@@ -146,17 +146,17 @@ def getConfig():
         mgenlog = 'There was a problem parsing the config file.'
         genLog(mgenlog)
         print(mgenlog)
-        exit()
+        sys.exit()
 
 
 def checkCommands(sysarg1, sysarg2):                                   # Check for valid commands
    
     if len(sysarg1) > 1 and sysarg1.lower() not in ['trailers', 'csv', 'help', 'backup', 'clean', 'stats']:
         displayHelp(sysarg1)
-        exit()
+        sys.exit()
     if len(sysarg1) == 0 or 'help' in sysarg1.lower():
         displayHelp(sysarg1)
-        exit()
+        sys.exit()
 
 
 def displayHelp(sysarg1):                                 #  Command line help menu display
@@ -261,11 +261,11 @@ def getMezzmoTrailers(sysarg1= '', sysarg2= '', sysarg3 = ''):    #  Get Movie C
                                         moveTrailers(trname)             # Move trailer to trailer folder
                                         updateTempHist(item['tmdb_id'], trname, trresults[2], trresults[3])
                                         getArtwork(item['tmdb_id'], item['poster_uri'], item['backdrop_uri'])
+                                    ccount += 1                          # Increment new trailer counter
                                 else:
                                     badtrailer += 1
                                     addbadTrailer(item, type)            # Add to bad trailer table
                                 totcount += 1
-                                ccount += 1
                             elif trbad > 0:                              # Trailer already marked unavailable
                                 badtrailer += 1
                                 mgenlog = 'Skipping trailer previously marked unavailable: ' + item['uri']
@@ -603,7 +603,7 @@ def checkDatabase():
         print (e)
         mgenlog = "There was a problem verifying the trailer database file: " + trailerdb
         print(mgenlog)
-        exit()   
+        sys.exit()   
 
 
 def updateTempHist(tmdb_id, trname, trsize, trres):                       # Update temp table

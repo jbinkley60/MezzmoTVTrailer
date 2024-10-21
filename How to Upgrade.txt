@@ -1,3 +1,11 @@
+Upgrading from v1.0.5 to v1.0.6
+
+v1.0.6 only has client changes.  Simply copy movie_trailers.py and yt-dlp.exe files
+over the exsiting v1.0.5 files on your client computer.
+
+Additionally the client software is now available in Windows 64 exe format so
+you can use that format instead of tvshow_trailers.py
+
 Upgrading from v1.0.4 to v1.0.5
 
 v1.0.5 only has client changes.  Simply copy tvshow_trailers.py file over the 

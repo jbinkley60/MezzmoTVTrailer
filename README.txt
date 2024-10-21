@@ -1,3 +1,9 @@
+v1.0.6 10/22/2024
+
+-  Fixed new fetch counter limit bug where limit could be reached incorrectly
+-  Updated client code to support Windows 64 exe format
+-  Added Windoww x64 release format for client along with native Python  
+
 v1.0.5 9/6/2024
 
 - Fixed a bug where the Airing Today and Currently Airing TV Show categories
