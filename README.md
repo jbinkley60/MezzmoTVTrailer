@@ -58,5 +58,5 @@ Add a channel to your Mezzmo server to view movie trailers from <a href="https:/
           
 
            
-<br/><img src="https://github.com/Conceiva/MovieTrailer/assets/63779136/1f65376d-2a70-4337-a0c7-a4899164b0a8" width="40%" height="40%">
+<br/><img src="https://github.com/user-attachments/assets/dcad6703-dc82-49f2-ad6b-9b1c1cc126db" width="40%" height="40%">
 
